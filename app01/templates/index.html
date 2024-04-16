@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>通信实例</title>
+    <style>
+
+       .message {
+           height: 300px;
+           width: 100px;
+           border: 1px solid #ccc;
+       }
+    </style>
+</head>
+<body>
+
+<div class="message" id="message"></div>
+<div style="width: 500px;height: 300px; overflow-x:hidden;" id="message_window"></div>
+
+<div>
+    <input type="text" id="txt" placeholder="请输入消息...">   <!-- 客户端发消息 -->
+    <input type="button" value="发送数据" onclick="SendMessage()">  <!-- 点击发送按钮，调用script中的SendMessage()函数 -->
+    <input type="button" value="断开连接" onclick="CloseWebSocket()">
+</div>
+
+<div id="received_message"></div>
+<script>
+    // 创建websocket对象
+    socket = new WebSocket("ws://127.0.0.1:8000/zmq/{{ group_num }}/"); // 访问页面后，建立websocket连接 与rounting.py中路由对应的url一致 group_num为views.py中render()函数中传递的group_num参数 通过get请求获取
+
+    // 监听websocket连接状态 当websocket连接成功时，服务端执行consumers.py中的websocket_connect()函数，调用self.accept()方法时，触发onopen事件
+    socket.onopen = function(){
+        let tag = document.createElement("div");  // 创建一个div标签
+        tag.innerText = "[连接成功]";  // 设置div标签的文本内容
+        document.getElementById("message").appendChild(tag);  // 将div标签添加到id为message的div中
+    }
+
+    // 监听服务器端的消息 当websocket接收到服务端发送的消息时，触发onmessage事件 服务端发回的数据会在event.data中
+    socket.onmessage = function(event) {
+        const data = JSON.parse(event.data);  // 将服务端发回的数据解析为json格式
+        let tag = document.createElement("p");  // 创建一个p标签
+        tag.innerText = data.message1;  // 设置div标签的文本内容 为consumers.py中receive()函数中返回的键为message1 的值
+        document.getElementById("message_window").appendChild(tag);  // 将div标签添加到id为message的div中
+        // 在这里处理接收到的数据
+    };
+
+    // 监听websocket连接关闭 当服务器端主动关闭websocket连接关闭时，触发onclose事件
+    socket.onclose = function(event) {
+        let tag = document.createElement("div");  // 创建一个div标签
+        tag.innerText = "[连接关闭]";  // 设置div标签的文本内容
+        document.getElementById("message").appendChild(tag);  // 将div标签添加到id为message的div中
+    }
+    function SendMessage(){
+        socket.send(document.getElementById("txt").value); // 发送id为txt的input中的值到服务器端
+
+    } // 发送消息到服务器端
+
+    function CloseWebSocket(){
+        socket.close();  // 回去执行websocket_disconnect()
+    } // 客户端主动关闭websocket连接
+</script>
+
+</body>
+</html>
